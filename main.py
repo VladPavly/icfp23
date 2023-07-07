@@ -15,29 +15,34 @@ class Coordinate():
 class Instruments():
     def __init__(self):
         self.coordinates: list[Coordinate] = []
+        self.empty = True
     
-    def find_coordinates(self, array, stage: list[float]):
+    def find_coordinates(self, array, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
         max_value = float('-inf')
         max_x = 0
         max_y = 0
-        for _ in range(0, 10):
+        
+        while len(self.coordinates) == 0:
             i = 0
             while i < len(array):
                 j = 0
                 
                 while j < len(array[i]):
-                    if array[i][j] >= max_value:
+                    x, y = j + stage[0] + 10, i + stage[1] + 10
+                    if array[i][j] >= max_value and not (int(x) in stage_points and int(y) in stage_points[int(x)] and not stage_points[int(x)][int(y)].empty):
                         max_value = array[i][j]
-                        max_x = j + stage[0] + 10
-                        max_y = i + stage[1] + 10
+                        max_x = x
+                        max_y = y
                     
                     j += 1
                 
                 i += 1
             
-            self.coordinates.append(Coordinate(max_x, max_y, max_value))
-            max_value = 0
-            array[round(max_y - (stage[1] + 10))][round(max_x - (stage[0] + 10))] = 0
+            if not (int(max_x) in stage_points and int(max_y) in stage_points[int(max_x)] and not stage_points[int(max_x)][int(max_y)].empty):
+                coordinate = Coordinate(max_x, max_y, max_value)
+                self.coordinates.append(coordinate)
+                max_value = 0
+                array[round(max_y - (stage[1] + 10))][round(max_x - (stage[0] + 10))] = 0
 
 
 class Attendee():
@@ -69,7 +74,6 @@ def main(problem: dict):
     stage_height: int = problem['stage_height']
     stage_bottom_left: list[int] = problem['stage_bottom_left']
     musicians: list = problem['musicians']
-    musicians_count: int = len(musicians)
 
     dict_to_attende = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
     attendies = list(map(dict_to_attende, problem['attendees']))
@@ -82,6 +86,8 @@ def main(problem: dict):
     result = {
         'placements': [{'x': None, 'y': None} for _ in range(len(musicians))]
     }
+    
+    stage_points = {}
 
     for i in range(len(instruments)):
         array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
@@ -92,9 +98,19 @@ def main(problem: dict):
             a += 1
             print(f'Instrument {i} - {a / attendies_count * 100}%')
         
-        instruments[i].find_coordinates(array, stage_bottom_left)
-        
-        for coordinate in instruments[i].coordinates[:musicians.count(i)]:
+        for _ in range(musicians.count(i)):
+            instruments[i].find_coordinates(array, stage_bottom_left, stage_points)
+            coordinate = instruments[i].coordinates[0]
+            
+            coordinate.empty = False
+            
+            for ax in range(-10, 11):
+                for ay in range(-10, 11):
+                    if int(coordinate.x + ax) not in stage_points:
+                        stage_points[int(coordinate.x + ax)] = {}
+                    
+                    stage_points[int(coordinate.x + ax)][int(coordinate.y + ay)] = coordinate
+            
             musician_id = musicians.index(i)
             
             result['placements'][musician_id]['x'] = coordinate.x
@@ -102,6 +118,7 @@ def main(problem: dict):
             print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {round(coordinate.value, 2)}')
             
             musicians[musician_id] = -1
+            instruments[i].coordinates = []
     
     return result
 
