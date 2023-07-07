@@ -8,17 +8,14 @@ class API():
         self.url = url
         self.token = token
     
-    def parse(self, data: dict):
-        if 'Success' in data:
-            return json.loads(data['Success'])
-        else:
-            print(data['Failure'])
-            raise Exception('API exception')
-    
     def get_problem(self, id: int):
-        problem = self.parse(httpx.get(self.url + f'problem?problem_id={id}', headers={'Authorization': f'Bearer {self.token}'}).json())
+        problem = httpx.get(self.url + f'problem?problem_id={id}', headers={'Authorization': f'Bearer {self.token}'}).json()
         
-        return problem
+        if 'Failure' in problem:
+            print(problem['Failure'])
+            raise Exception('API exception')
+        
+        return json.loads(problem['Success'])
     
     def get_promblems_count(self):
         count = httpx.get(self.url + f'problems', headers={'Authorization': f'Bearer {self.token}'}).json()['number_of_problems']
@@ -43,4 +40,4 @@ class API():
 
 if __name__ == '__main__':
     api = API(API_TOKEN)
-    print(api.submit(1, {'hello': 'world'}))
+    print(api.get_problem(1))
