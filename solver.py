@@ -24,7 +24,7 @@ class Solver():
         amount = self.api.get_promblems_count()
         
         processes: list[Process] = []
-        for i in range(1, amount + 1):
+        for i in range(amount):
             processes.append(Process(target=self.solve_problem, args=(i,)))
         
         for process in processes:
