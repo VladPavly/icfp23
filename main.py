@@ -107,10 +107,11 @@ def main(problem: dict):
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
-                    if int(coordinate.x + ax) not in stage_points:
-                        stage_points[int(coordinate.x + ax)] = {}
-                    
-                    stage_points[int(coordinate.x + ax)][int(coordinate.y + ay)] = coordinate
+                    if (ax / 10) ** 2 + (ay / 10) ** 2 <= 1:
+                        if int(coordinate.x + ax) not in stage_points:
+                            stage_points[int(coordinate.x + ax)] = {}
+                        
+                        stage_points[int(coordinate.x + ax)][int(coordinate.y + ay)] = coordinate
             
             musician_id = musicians.index(i)
             
