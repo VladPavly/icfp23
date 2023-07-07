@@ -1,3 +1,7 @@
+from api import API
+from config import API_TOKEN
+
+
 class Coordinate():
     def __init__(self, x, y, value):
         self.x = x
@@ -16,7 +20,7 @@ class Instruments():
         max_value = float('-inf')
         max_x = 0
         max_y = 0
-        for _ in range(0,10):
+        for _ in range(0, 10):
             i = 0
             while i < len(array):
                 j = 0
@@ -70,7 +74,7 @@ def main(problem: dict):
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
 
     for i in range(len(instruments)):
-        array = [[0.0] * (stage_width - 20) for _ in range(stage_height - 20)]
+        array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
         
         for attend in attendies:
             attend.find_impact(array, i, stage_bottom_left)
@@ -80,3 +84,8 @@ def main(problem: dict):
         print(str(len(instruments[i].coordinates)), str(i))
         for coordinate in instruments[i].coordinates:
             coordinate.print()
+
+
+if __name__ == '__main__':
+    api = API(API_TOKEN)
+    main(api.get_problem(1))
