@@ -70,16 +70,20 @@ def main(problem: dict):
 
     dict_to_attende = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
     attendies = list(map(dict_to_attende, problem['attendees']))
+    attendies_count = len(attendies)
 
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
 
     for i in range(len(instruments)):
         array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
         
+        a = 0
         for attend in attendies:
             attend.find_impact(array, i, stage_bottom_left)
+            a += 1
+            print(f'{a / attendies_count * 100}%')
         
-        instruments[i].find_coordinates(array)
+        instruments[i].find_coordinates(array, stage_bottom_left)
         
         print(str(len(instruments[i].coordinates)), str(i))
         for coordinate in instruments[i].coordinates:
