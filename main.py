@@ -65,10 +65,11 @@ class Attendee():
 def main(problem: dict):
     print('Preparing...')
     
-    stage_width = problem['stage_width']
-    stage_height = problem['stage_height']
-    stage_bottom_left = problem['stage_bottom_left']
-    musicians = problem['musicians']
+    stage_width: int = problem['stage_width']
+    stage_height: int = problem['stage_height']
+    stage_bottom_left: list[int] = problem['stage_bottom_left']
+    musicians: list = problem['musicians']
+    musicians_count: int = len(musicians)
 
     dict_to_attende = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
     attendies = list(map(dict_to_attende, problem['attendees']))
@@ -77,6 +78,10 @@ def main(problem: dict):
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
     
     print('Starting script...')
+    
+    result = {
+        'placements': [{'x': None, 'y': None} for _ in range(len(musicians))]
+    }
 
     for i in range(len(instruments)):
         array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
@@ -89,13 +94,20 @@ def main(problem: dict):
         
         instruments[i].find_coordinates(array, stage_bottom_left)
         
-        print(str(len(instruments[i].coordinates)), str(i))
-        for coordinate in instruments[i].coordinates:
-            coordinate.print()
+        for coordinate in instruments[i].coordinates[:musicians.count(i)]:
+            musician_id = musicians.index(i)
+            
+            result['placements'][musician_id]['x'] = coordinate.x
+            result['placements'][musician_id]['y'] = coordinate.y
+            print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {round(coordinate.value, 2)}')
+            
+            musicians[musician_id] = -1
+    
+    return result
 
 
 if __name__ == '__main__':
-    main({
+    print(main({
         "room_width": 2000.0,
         "room_height": 5000.0,
         "stage_width": 1000.0,
@@ -107,4 +119,4 @@ if __name__ == '__main__':
             {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
             {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
         ]
-    })
+    }))
