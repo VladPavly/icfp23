@@ -23,12 +23,12 @@ class API():
         return count
     
     def submit(self, id: int, data: dict):
-        submission_id = str(httpx.post(self.url + f'submission', headers={'Authorization': f'Bearer {self.token}'},
+        submission_id = httpx.post(self.url + f'submission', headers={'Authorization': f'Bearer {self.token}'},
                                  json={
                                         'problem_id': id,
                                         'contents': json.dumps(data)
                                      }
-        ).text)
+        ).text
         
         return self.get_submission(submission_id[1:-1])
     
