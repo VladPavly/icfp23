@@ -1,5 +1,6 @@
 from api import API
 from config import API_TOKEN
+import sys
 
 
 class Coordinate():
@@ -68,7 +69,7 @@ class Attendee():
 
 
 def main(problem: dict):
-    print('Preparing...')
+    print('Preparing...', file=sys.stderr)
     
     stage_width: int = problem['stage_width']
     stage_height: int = problem['stage_height']
@@ -81,7 +82,7 @@ def main(problem: dict):
 
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
     
-    print('Starting script...')
+    print('Starting script...', file=sys.stderr)
     
     result = {
         'placements': [{'x': None, 'y': None} for _ in range(len(musicians))]
@@ -97,7 +98,7 @@ def main(problem: dict):
         for attend in attendies:
             attend.find_impact(array, i, stage_bottom_left)
             a += 1
-            print(f'Instrument {i} - {a / attendies_count * 100}%')
+            print(f'Instrument {i} - {a / attendies_count * 100}%', file=sys.stderr)
         
         for _ in range(musicians.count(i)):
             instruments[i].find_coordinates(array, stage_bottom_left, stage_points)
@@ -119,12 +120,12 @@ def main(problem: dict):
             
             result['placements'][musician_id]['x'] = coordinate.x
             result['placements'][musician_id]['y'] = coordinate.y
-            print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {round(coordinate.value, 2)}')
+            print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {round(coordinate.value, 2)}', file=sys.stderr)
             
             musicians[musician_id] = -1
             instruments[i].coordinates = []
     
-    print(f'Score - {score}')
+    print(f'Score - {score}', file=sys.stderr)
     
     return result
 

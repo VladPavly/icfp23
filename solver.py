@@ -1,6 +1,7 @@
 from api import API
 from config import API_TOKEN
 from main import main
+import sys
 
 
 class Solver():
@@ -22,7 +23,7 @@ class Solver():
         
         for i in range(1, amount + 1):
             submission = self.solve_problem(i)
-            print(f'Problem {i} solved.')
+            print(f'Problem {i} solved.', file=sys.stderr)
 
 
 if __name__ == '__main__':
