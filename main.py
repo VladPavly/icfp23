@@ -37,7 +37,7 @@ class Instruments():
             
             self.coordinates.append(Coordinate(max_x, max_y, max_value))
             max_value = 0
-            array[max_y - (stage[1] + 10)][max_x - (stage[0] + 10)] = 0
+            array[round(max_y - (stage[1] + 10))][round(max_x - (stage[0] + 10))] = 0
 
 
 class Attendee():
@@ -63,6 +63,8 @@ class Attendee():
 
 
 def main(problem: dict):
+    print('Preparing...')
+    
     stage_width = problem['stage_width']
     stage_height = problem['stage_height']
     stage_bottom_left = problem['stage_bottom_left']
@@ -73,6 +75,8 @@ def main(problem: dict):
     attendies_count = len(attendies)
 
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
+    
+    print('Starting script...')
 
     for i in range(len(instruments)):
         array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
@@ -81,7 +85,7 @@ def main(problem: dict):
         for attend in attendies:
             attend.find_impact(array, i, stage_bottom_left)
             a += 1
-            print(f'{a / attendies_count * 100}%')
+            print(f'Instrument {i} - {a / attendies_count * 100}%')
         
         instruments[i].find_coordinates(array, stage_bottom_left)
         
@@ -92,4 +96,7 @@ def main(problem: dict):
 
 if __name__ == '__main__':
     api = API(API_TOKEN)
+    
+    print('Downloading problem...')
+    
     main(api.get_problem(1))
