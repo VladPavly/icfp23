@@ -101,8 +101,9 @@ def main(problem: dict):
         for _ in range(musicians.count(i)):
             instruments[i].find_coordinates(array, stage_bottom_left, stage_points)
             coordinate = instruments[i].coordinates[0]
-            
+
             coordinate.empty = False
+            
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
