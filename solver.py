@@ -2,6 +2,7 @@ from api import API
 from config import API_TOKEN
 from main import main
 import sys
+from multiprocessing import Process, freeze_support
 
 
 class Solver():
@@ -16,17 +17,23 @@ class Solver():
         
         data = self.solve(problem)
         
+        print(f'Problem {id} solved.', file=sys.stderr)
         return self.api.submit(id, data)
     
     def solve_all(self):
         amount = self.api.get_promblems_count()
         
+        processes: list[Process] = []
         for i in range(1, amount + 1):
-            submission = self.solve_problem(i)
-            print(f'Problem {i} solved.', file=sys.stderr)
+            processes.append(Process(target=self.solve_problem, args=(i,)))
+        
+        for process in processes:
+            process.start()
 
 
 if __name__ == '__main__':
+    freeze_support()
+    
     api = API(API_TOKEN)
     solver = Solver(api)
     
