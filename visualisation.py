@@ -51,4 +51,4 @@ if __name__ == '__main__':
     #         {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
     #     ]
     # })
-    visualize(api.get_problem(1))
+    visualize(api.get_problem(2))

@@ -88,6 +88,7 @@ def main(problem: dict):
     }
     
     stage_points = {}
+    score = 0
 
     for i in range(len(instruments)):
         array = [[0.0] * round(stage_width - 20) for _ in range(round(stage_height - 20))]
@@ -103,6 +104,7 @@ def main(problem: dict):
             coordinate = instruments[i].coordinates[0]
 
             coordinate.empty = False
+            score += coordinate.value
             
             
             for ax in range(-10, 11):
@@ -121,6 +123,8 @@ def main(problem: dict):
             
             musicians[musician_id] = -1
             instruments[i].coordinates = []
+    
+    print(f'Score - {score}')
     
     return result
 

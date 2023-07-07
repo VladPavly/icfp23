@@ -1,5 +1,6 @@
 from api import API
 from config import API_TOKEN
+from main import main
 
 
 class Solver():
@@ -7,21 +8,7 @@ class Solver():
         self.api = api
     
     def solve(self, data: dict):
-        ix, iy = data['stage_bottom_left']
-        ix += 10
-        iy += 10
-        x, y = ix, iy
-        
-        result = []
-        for _ in range(len(data['musicians'])):
-            result.append({'x': x, 'y': y})
-            x += 10
-            
-            if x > data['stage_bottom_left'][0] + data['stage_width'] - 10:
-                x = ix
-                y += 10
-        
-        return {'placements': result}
+        return main(data)
     
     def solve_problem(self, id: int):
         problem = self.api.get_problem(id)
