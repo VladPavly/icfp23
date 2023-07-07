@@ -20,6 +20,7 @@ class Solver():
         amount = self.api.get_promblems_count()
         
         for i in range(1, amount + 1):
+            submission = self.solve_problem(i)
             print(f'Problem {i} solved.')
 
 
