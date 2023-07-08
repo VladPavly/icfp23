@@ -22,15 +22,11 @@ class Instruments():
         self.empty = True
     
     def find_coordinates(self, instrument, Attendies, sizey, sizex, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
-        max_value = float('-inf')
-        max_x = 0
-        max_y = 0
-        zerox = 0
-        zeroy = 0
+        zero = 0
         while len(self.coordinates) == 0:
             Walls = [Coordinate(0,0,float('-inf')) for _ in range(4)]
-            for i in range(zeroy,sizey):
-                x, y = zerox + stage[0] + 10, i + stage[1] + 10
+            for i in range(zero,sizey):
+                x, y = zero + stage[0] + 10, i + stage[1] + 10
                 count = find_impact(Attendies, y, x, instrument)
                 if count >= Walls[0].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     Walls[0].value = count
@@ -43,8 +39,8 @@ class Instruments():
                     Walls[1].x = x
                     Walls[1].y = y
 
-            for j in range(zerox, sizex):
-                x, y = j + stage[0] + 10, zeroy + stage[1] + 10
+            for j in range(zero, sizex):
+                x, y = j + stage[0] + 10, zero + stage[1] + 10
                 count = find_impact(Attendies, y, x, instrument)
                 if count >= Walls[2].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     Walls[2].value = count
@@ -61,10 +57,9 @@ class Instruments():
             if Walls[0].value > float('-inf') and (int(Walls[0].x) not in stage_points or int(Walls[0].y) not in stage_points[int(Walls[0].x)] or stage_points[int(Walls[0].x)][int(Walls[0].y)].empty):
                 self.coordinates.append(Walls[0])
             else:
-                zerox+=11
-                zeroy+=11
-                sizex-=10
-                sizey-=10
+                zero+=11
+                sizex-=11
+                sizey-=11
 
 
 class Attendee():
@@ -76,9 +71,8 @@ class Attendee():
 def find_impact(Attendies, i, j, instrument):
     count = 0
     for att in Attendies:
-        count += 10000000 * att.tastes[instrument] / abs(
-            pow(att.x - j, 2) + pow(att.y - i, 2)
-        )
+            distance = abs(pow(att.x - j, 2) + pow(att.y - i, 2))
+            count += (10000000 * att.tastes[instrument] / distance) if distance!=0 else 0
     return count
 
 def main(problem: dict):
@@ -115,6 +109,7 @@ def main(problem: dict):
             coordinate.empty = False
             score += coordinate.value
             
+            musician_id = musicians.index(i)
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
@@ -123,8 +118,6 @@ def main(problem: dict):
                             stage_points[int(coordinate.x + ax)] = {}
                         
                         stage_points[int(coordinate.x + ax)][int(coordinate.y + ay)] = coordinate
-            
-            musician_id = musicians.index(i)
             
             result['placements'][musician_id]['x'] = coordinate.x
             result['placements'][musician_id]['y'] = coordinate.y
