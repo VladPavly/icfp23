@@ -1,6 +1,7 @@
 from api import API
 from config import API_TOKEN
 import sys
+from visualisator import RewindClient
 
 
 class Coordinate():
@@ -21,7 +22,7 @@ class Instruments():
         self.coordinates: list[Coordinate] = []
         self.empty = True
     
-    def find_coordinates(self, instrument, attendies, size_y, size_x, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
+    def find_coordinates(self, instrument, attendies: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
         zero_x = 0
         zero_y = 0
         
@@ -75,7 +76,7 @@ class Attendee():
         self.y = y
         self.tastes = tastes
 
-def find_impact(attendies, i, j, instrument):
+def find_impact(attendies: list[Attendee], i: int, j: int, instrument: int):
     count = 0
     
     for attende in attendies:
@@ -95,6 +96,12 @@ def main(problem: dict):
 
     dict_to_attende = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
     attendies = list(map(dict_to_attende, problem['attendees']))
+    
+    client = RewindClient()
+    divide = 5
+    
+    for attende in attendies:
+        client.circle(attende.x / divide, attende.y / divide, 5, client.BLUE, True)
 
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
     
@@ -106,15 +113,18 @@ def main(problem: dict):
     
     stage_points = {}
     score = 0
+    
+    client.rectangle(stage_bottom_left[0] / divide, stage_bottom_left[1] / divide, (stage_bottom_left[0] + stage_height) / divide, (stage_bottom_left[1] + stage_width) / divide, 0, False)
 
     for i in range(len(instruments)):
         for _ in range(musicians.count(i)):
-            instruments[i].find_coordinates(i, attendies, int(stage_width - 20),int(stage_height - 20), stage_bottom_left, stage_points)
+            instruments[i].find_coordinates(i, attendies, int(stage_width - 20), int(stage_height - 20), stage_bottom_left, stage_points)
             coordinate = instruments[i].coordinates[0]
 
             coordinate.empty = False
             score += coordinate.value
             
+            client.circle((coordinate.x + stage_bottom_left[1]) / divide, (coordinate.y + stage_bottom_left[0]) / divide, 5, client.RED, True)  
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
@@ -134,10 +144,24 @@ def main(problem: dict):
             instruments[i].coordinates = []
     
     print(f'Score - {score}', file=sys.stderr)
+    client.end_frame()
     
     return result
 
 
 if __name__ == '__main__':
-    ap = API(API_TOKEN)
-    main(ap.get_problem(id=1))
+    api = API(API_TOKEN)
+    # main({
+    #     "room_width": 2000.0,
+    #     "room_height": 5000.0,
+    #     "stage_width": 1000.0,
+    #     "stage_height": 200.0,
+    #     "stage_bottom_left": [500.0, 0.0],
+    #     "musicians": [0, 1, 0],
+    #     "attendees": [
+    #         {"x": 100.0, "y": 500.0, "tastes": [1000.0, -1000.0]},
+    #         {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
+    #         {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
+    #     ]
+    # })
+    main(api.get_problem(1))
