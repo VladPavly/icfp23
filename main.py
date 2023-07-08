@@ -61,7 +61,7 @@ class Attendee():
             
             while j < len(array[i]):
                 array[i][j] += 10000000 * self.tastes[instrument] / abs(
-                    pow(self.x - (j + bottom_left[0] + 10), 2) + pow(self.y - (i + bottom_left[1] + 10), 2)
+                    (self.x - (j + bottom_left[0] + 10)) ** 2 + (self.y - (i + bottom_left[1] + 10)) ** 2
                 )
                 j += 1
                 
