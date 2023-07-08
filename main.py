@@ -21,50 +21,52 @@ class Instruments():
         self.coordinates: list[Coordinate] = []
         self.empty = True
     
-    def find_coordinates(self, instrument, Attendies, sizey, sizex, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
-        max_value = float('-inf')
-        max_x = 0
-        max_y = 0
-        zerox = 0
-        zeroy = 0
+    def find_coordinates(self, instrument, attendies, size_y, size_x, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
+        zero_x = 0
+        zero_y = 0
+        
         while len(self.coordinates) == 0:
-            Walls = [Coordinate(0,0,float('-inf')) for _ in range(4)]
-            for i in range(zeroy,sizey):
-                x, y = zerox + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(Attendies, y, x, instrument)
-                if count >= Walls[0].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    Walls[0].value = count
-                    Walls[0].x = x
-                    Walls[0].y = y
-                x, y = sizex + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(Attendies, y, x, instrument)
-                if count >= Walls[1].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    Walls[1].value = count
-                    Walls[1].x = x
-                    Walls[1].y = y
-
-            for j in range(zerox, sizex):
-                x, y = j + stage[0] + 10, zeroy + stage[1] + 10
-                count = find_impact(Attendies, y, x, instrument)
-                if count >= Walls[2].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    Walls[2].value = count
-                    Walls[2].x = x
-                    Walls[2].y = y
-                x, y = j + stage[0] + 10, sizey + stage[1] + 10
-                count = find_impact(Attendies, y, x, instrument)
-                if count >= Walls[3].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    Walls[3].value = count
-                    Walls[3].x = x
-                    Walls[3].y = y
+            walls = [Coordinate(0, 0, float('-inf')) for _ in range(4)]
             
-            Walls.sort(key = Coordinate.ret_value)
-            if Walls[0].value > float('-inf') and (int(Walls[0].x) not in stage_points or int(Walls[0].y) not in stage_points[int(Walls[0].x)] or stage_points[int(Walls[0].x)][int(Walls[0].y)].empty):
-                self.coordinates.append(Walls[0])
+            for i in range(zero_y, size_y):
+                x, y = zero_x + stage[0] + 10, i + stage[1] + 10
+                count = find_impact(attendies, y, x, instrument)
+                if count >= walls[0].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
+                    walls[0].value = count
+                    walls[0].x = x
+                    walls[0].y = y
+                
+                x, y = size_x + stage[0] + 10, i + stage[1] + 10
+                count = find_impact(attendies, y, x, instrument)
+                if count >= walls[1].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
+                    walls[1].value = count
+                    walls[1].x = x
+                    walls[1].y = y
+
+            for j in range(zero_x, size_x):
+                x, y = j + stage[0] + 10, zero_y + stage[1] + 10
+                count = find_impact(attendies, y, x, instrument)
+                if count >= walls[2].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
+                    walls[2].value = count
+                    walls[2].x = x
+                    walls[2].y = y
+                
+                x, y = j + stage[0] + 10, size_y + stage[1] + 10
+                count = find_impact(attendies, y, x, instrument)
+                
+                if count >= walls[3].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
+                    walls[3].value = count
+                    walls[3].x = x
+                    walls[3].y = y
+            
+            walls.sort(key = Coordinate.ret_value)
+            if walls[0].value > float('-inf') and (int(walls[0].x) not in stage_points or int(walls[0].y) not in stage_points[int(walls[0].x)] or stage_points[int(walls[0].x)][int(walls[0].y)].empty):
+                self.coordinates.append(walls[0])
             else:
-                zerox+=11
-                zeroy+=11
-                sizex-=10
-                sizey-=10
+                zero_x += 11
+                zero_y += 11
+                size_x -= 10
+                size_y -= 10
 
 
 class Attendee():
@@ -73,12 +75,14 @@ class Attendee():
         self.y = y
         self.tastes = tastes
 
-def find_impact(Attendies, i, j, instrument):
+def find_impact(attendies, i, j, instrument):
     count = 0
-    for att in Attendies:
-        count += 10000000 * att.tastes[instrument] / abs(
-            pow(att.x - j, 2) + pow(att.y - i, 2)
+    
+    for attende in attendies:
+        count += 10000000 * attende.tastes[instrument] / abs(
+            (attende.x - j) ** 2 + (attende.y - i) ** 2
         )
+    
     return count
 
 def main(problem: dict):
@@ -104,10 +108,6 @@ def main(problem: dict):
     score = 0
 
     for i in range(len(instruments)):
-        # array = [[0.0] * int(stage_width - 20) for _ in range(int(stage_height - 20))]
-        
-        # find_impact(attendies, array, i, stage_bottom_left)
-        
         for _ in range(musicians.count(i)):
             instruments[i].find_coordinates(i, attendies, int(stage_width - 20),int(stage_height - 20), stage_bottom_left, stage_points)
             coordinate = instruments[i].coordinates[0]
