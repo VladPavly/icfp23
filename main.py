@@ -183,6 +183,14 @@ def main(problem: dict):
     divide = 50
     
     obstacles = []
+    if 'pillars' in problem:
+        pillar_parser = lambda pillar: (tuple(pillar['center']), pillar['radius'])
+        obstacles = list(map(pillar_parser, problem['pillars']))
+    
+    print(f'Pillars - {len(obstacles)}')
+    
+    for pillar in obstacles:
+        client.circle(pillar[0][0] / divide, pillar[0][1] / divide, pillar[1] / divide, client.DARK_GREEN, True)
     
     for attendee in attendees:
         client.circle(attendee.position.x / divide, attendee.position.y / divide, 5 / divide, client.BLUE, True)
@@ -200,6 +208,8 @@ def main(problem: dict):
     score = 0
     
     client.rectangle(stage_bottom_left[0] / divide, (stage_bottom_left[1] + stage_height) / divide, (stage_bottom_left[0] + stage_width) / divide, stage_bottom_left[1] / divide, 0, False)
+    
+    # client.end_frame() # Enable this if you wanna see problem
 
     for i in range(len(instruments)):
         for _ in range(musicians.count(i)):
