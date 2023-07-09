@@ -4,8 +4,6 @@ import sys
 from visualisator import RewindClient, FakeClient
 import math
 import json
-from shapely.geometry import LineString, Point, MultiPoint
-from shapely.geometry import Point
 
 
 class Coordinate():
@@ -27,10 +25,10 @@ class Coordinate():
         return (self.x, self.y)
     
     def obstacle(self, coordinate):
-        line_string = LineString([self.to_vector(), coordinate.to_vector()])
+        vectors = [self.to_vector(), coordinate.to_vector()]
         
         for obstacle in obstacles:
-            if line_string.intersects(obstacle):
+            if circle_line_segment_intersection(*obstacle, *vectors):
                 return True
         
         return False
@@ -132,9 +130,35 @@ def find_impact(attendees: list[Attendee], coordinate: Coordinate, instrument: i
     for attendee in attendees:
         if not attendee.position.obstacle(coordinate):
             distance = attendee.position.distance(coordinate)
-            count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
+            count += max(math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0, 0)
     
     return count
+
+
+def circle_line_segment_intersection(circle_center, circle_radius, point_1, point_2):
+    (p1x, p1y), (p2x, p2y), (cx, cy) = point_1, point_2, circle_center
+    (x1, y1), (x2, y2) = (p1x - cx, p1y - cy), (p2x - cx, p2y - cy)
+    
+    dx, dy = (x2 - x1), (y2 - y1)
+    dr = (dx ** 2 + dy ** 2) ** 0.5
+    big_d = x1 * y2 - x2 * y1
+    discriminant = circle_radius ** 2 * dr ** 2 - big_d ** 2
+
+    if discriminant < 0:
+        return False
+    else:
+        intersections = [
+            (cx + (big_d * dy + sign * (-1 if dy < 0 else 1) * dx * discriminant ** 0.5) / dr ** 2,
+             cy + (-big_d * dx + sign * abs(dy) * discriminant ** 0.5) / dr ** 2)
+            for sign in ((1, -1) if dy < 0 else (-1, 1))]
+        
+        fraction_along_segment = [(xi - p1x) / dx if abs(dx) > abs(dy) else (yi - p1y) / dy for xi, yi in intersections]
+        intersections = [pt for pt, frac in zip(intersections, fraction_along_segment) if 0 <= frac <= 1]
+        
+        if len(intersections) == 2 and abs(discriminant) <= 1e-9:
+            return False
+        else:
+            return True
 
 
 def debug(x: int, y: int):
@@ -151,24 +175,25 @@ def main(problem: dict):
     stage_height: int = problem['stage_height']
     stage_bottom_left: list[int] = problem['stage_bottom_left']
     musicians: list = problem['musicians']
+    musicians_parsed = 0
 
     dict_to_attendee = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
     attendees = list(map(dict_to_attendee, problem['attendees']))
     
-    client = RewindClient()
-    divide = 1
+    divide = 50
     
     obstacles = []
     
     for attendee in attendees:
-        client.circle(attendee.position.x / divide, attendee.position.y / divide, 5, client.BLUE, True)
+        client.circle(attendee.position.x / divide, attendee.position.y / divide, 5 / divide, client.BLUE, True)
 
     instruments = [Instrument() for _ in range(max(musicians) + 1)]
     
     print('Starting script...', file=sys.stderr)
     
     result = {
-        'placements': [{'x': None, 'y': None} for _ in range(len(musicians))]
+        'placements': [{'x': None, 'y': None} for _ in range(len(musicians))],
+        'volumes': [1 for _ in range(len(musicians))]
     }
     
     stage_points = {}
@@ -179,14 +204,17 @@ def main(problem: dict):
     for i in range(len(instruments)):
         for _ in range(musicians.count(i)):
             coordinate = instruments[i].find_coordinates(i, attendees, int(stage_height - 20), int(stage_width - 20), stage_bottom_left, stage_points)
-            obstacles.append(Point(*coordinate.to_vector()).buffer(5).boundary)
+            obstacles.append([coordinate.to_vector(), 5])
 
             coordinate.empty = False
             score += coordinate.value
             
-            client.circle(coordinate.x / divide, coordinate.y / divide, 5, client.RED, True)
-            # for attendee in attendees:
-            #     client.line(attendee.position.x / divide, attendee.position.y / divide, coordinate.x / divide, coordinate.y / divide, client.DARK_RED)
+            if coordinate.value > 0:
+                volume = 10
+            else:
+                volume = 0
+            
+            client.circle(coordinate.x / divide, coordinate.y / divide, 5 / divide, client.RED, True)
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
@@ -200,7 +228,10 @@ def main(problem: dict):
             
             result['placements'][musician_id]['x'] = coordinate.x
             result['placements'][musician_id]['y'] = coordinate.y
-            print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {coordinate.value}', file=sys.stderr)
+            result['volumes'][musician_id] = volume
+            
+            musicians_parsed += 1
+            print(f'Musician {musicians_parsed}/{len(musicians)} ({musician_id}) - {coordinate.x} {coordinate.y} {coordinate.value * volume}', file=sys.stderr)
             
             musicians[musician_id] = -1
     
@@ -212,17 +243,27 @@ def main(problem: dict):
 
 if __name__ == '__main__':
     api = API(API_TOKEN)
-    # main({
-    #     "room_width": 2000.0,
-    #     "room_height": 5000.0,
-    #     "stage_width": 1000.0,
-    #     "stage_height": 200.0,
-    #     "stage_bottom_left": [500.0, 0.0],
-    #     "musicians": [0, 1, 0],
-    #     "attendees": [
-    #         {"x": 100.0, "y": 500.0, "tastes": [1000.0, -1000.0]},
-    #         {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
-    #         {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
-    #     ]
-    # })
-    print(json.dumps(main(api.get_problem(50))))
+    
+    if input('Use visualisator (y/N): ').lower().startswith('y'):
+        client = RewindClient()
+    else:
+        client = FakeClient()
+    
+    if input('Use sample (Y/n): ').lower().startswith('n'):
+        result = main(api.get_problem(int(input('Problem number: '))))
+    else:
+        result = main({
+            "room_width": 2000.0,
+            "room_height": 5000.0,
+            "stage_width": 1000.0,
+            "stage_height": 200.0,
+            "stage_bottom_left": [500.0, 0.0],
+            "musicians": [0, 1, 0],
+            "attendees": [
+                {"x": 100.0, "y": 500.0, "tastes": [1000.0, -1000.0]},
+                {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
+                {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
+            ]
+        })
+    
+    print(json.dumps(result))

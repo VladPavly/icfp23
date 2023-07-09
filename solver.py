@@ -1,5 +1,6 @@
 from api import API
 from config import API_TOKEN
+from visualisator import FakeClient
 from main import main
 import sys
 from multiprocessing import Process, freeze_support
@@ -10,6 +11,10 @@ class Solver():
         self.api = api
     
     def solve(self, data: dict):
+        global client
+        
+        client = FakeClient()
+        
         return main(data)
     
     def solve_problem(self, id: int):
