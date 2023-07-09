@@ -1,22 +1,20 @@
 from api import API
 from config import API_TOKEN
 import sys
-from visualisator import RewindClient
+from visualisator import RewindClient, FakeClient
 import math
 import json
 
 
 class Coordinate():
-    def __init__(self, x, y, value):
+    def __init__(self, x, y, value = float('-inf')):
         self.x = x
         self.y = y
         self.value = value
+        self.empty = True
 
     def __repr__(self):
-        return ' '.join([str(self.x), str(self.y), str(self.value)])
-
-    def get_value(self):
-        return self.value
+        return f'Coordinate(x={self.x}, y={self.y}, value={self.value})'
     
     def to_vector(self, coordinate):
         initial = (self.x - coordinate.x, self.y - coordinate.y)
@@ -26,18 +24,24 @@ class Coordinate():
         converted = (initial[0] / mx, initial[1] / mx)
         
         return converted
+    
+    def distance(self, coordinate):
+        distance = math.sqrt((self.x - coordinate.x) ** 2 + (self.y - coordinate.y) ** 2)
+        
+        return distance
 
 
 class Instruments():
     def __init__(self):
-        self.coordinates: list[Coordinate] = []
         self.empty = True
     
-    def find_coordinates(self, instrument: int, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]):
+    def find_coordinates(self, instrument: int, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]) -> Coordinate:
         zero = 0
+        best = Coordinate(0, 0)
       
-        while len(self.coordinates) == 0:
-            walls = [Coordinate(0, 0, float('-inf')) for _ in range(4)]
+        while True:
+            walls = [Coordinate(0, 0) for _ in range(4)]
+            changed = False
             
             # for i in range(size_x):
             #     for j in range(size_y):
@@ -53,7 +57,7 @@ class Instruments():
             
             for i in range(zero, size_y):
                 x, y = zero + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(attendees, x, y, instrument)
+                count = find_impact(attendees, Coordinate(x, y), instrument)
                 
                 if count >= walls[0].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     walls[0].value = count
@@ -63,7 +67,7 @@ class Instruments():
                 debug(x, y) 
                    
                 x, y = size_x + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(attendees, x, y, instrument)
+                count = find_impact(attendees, Coordinate(x, y), instrument)
                 
                 if count >= walls[1].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     walls[1].value = count
@@ -74,7 +78,7 @@ class Instruments():
 
             for j in range(zero, size_x):
                 x, y = j + stage[0] + 10, zero + stage[1] + 10
-                count = find_impact(attendees, x, y, instrument)
+                count = find_impact(attendees, Coordinate(x, y), instrument)
                 
                 if count >= walls[2].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     walls[2].value = count
@@ -84,7 +88,7 @@ class Instruments():
                 debug(x, y)
                 
                 x, y = j + stage[0] + 10, size_y + stage[1] + 10
-                count = find_impact(attendees, x, y, instrument)
+                count = find_impact(attendees, Coordinate(x, y), instrument)
                 
                 if count >= walls[3].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
                     walls[3].value = count
@@ -95,27 +99,33 @@ class Instruments():
             
             walls.sort(key = lambda coordinate: coordinate.value, reverse = True)
             
-            if walls[0].value > float('-inf') and (int(walls[0].x) not in stage_points or int(walls[0].y) not in stage_points[int(walls[0].x)] or stage_points[int(walls[0].x)][int(walls[0].y)].empty):
-                self.coordinates.append(walls[0])
-            else:
+            
+            if walls[0].value > best.value and (int(walls[0].x) not in stage_points or int(walls[0].y) not in stage_points[int(walls[0].x)] or stage_points[int(walls[0].x)][int(walls[0].y)].empty):
+                best = walls[0]
+                changed = True
+            
+            if best.value == float('-inf') or changed:
                 zero += 10
                 size_x -= 10
                 size_y -= 10
+            else:
+                break
+        
+        return best
 
 
 class Attendee():
     def __init__(self, x, y, tastes):
-        self.x = x
-        self.y = y
+        self.position = Coordinate(x, y)
         self.tastes = tastes
 
 
-def find_impact(attendees: list[Attendee], x: int, y: int, instrument: int):
+def find_impact(attendees: list[Attendee], coordinate: Coordinate, instrument: int):
     count = 0
     
-    for attende in attendees:
-        distance = math.sqrt((attende.x - x) ** 2 + (attende.y - y) ** 2)
-        count += math.ceil(1_000_000 * attende.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
+    for attendee in attendees:
+        distance = attendee.position.distance(coordinate)
+        count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
     
     return count
 
@@ -134,14 +144,14 @@ def main(problem: dict):
     stage_bottom_left: list[int] = problem['stage_bottom_left']
     musicians: list = problem['musicians']
 
-    dict_to_attende = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
-    attendees = list(map(dict_to_attende, problem['attendees']))
+    dict_to_attendee = lambda dict: Attendee(dict['x'], dict['y'], dict['tastes'])
+    attendees = list(map(dict_to_attendee, problem['attendees']))
     
     client = RewindClient()
     divide = 1
     
-    for attende in attendees:
-        client.circle(attende.x / divide, attende.y / divide, 5, client.BLUE, True)
+    for attendee in attendees:
+        client.circle(attendee.position.x / divide, attendee.position.y / divide, 5, client.BLUE, True)
 
     instruments = [Instruments() for _ in range(max(musicians) + 1)]
     
@@ -158,15 +168,14 @@ def main(problem: dict):
 
     for i in range(len(instruments)):
         for _ in range(musicians.count(i)):
-            instruments[i].find_coordinates(i, attendees, int(stage_height - 20), int(stage_width - 20), stage_bottom_left, stage_points)
-            coordinate = instruments[i].coordinates[0]
+            coordinate = instruments[i].find_coordinates(i, attendees, int(stage_height - 20), int(stage_width - 20), stage_bottom_left, stage_points)
 
             coordinate.empty = False
             score += coordinate.value
             
             client.circle(coordinate.x / divide, coordinate.y / divide, 5, client.RED, True)
-            # for attende in attendees:
-            #     client.line(attende.x / divide, attende.y / divide, coordinate.x / divide, coordinate.y / divide, client.DARK_RED)
+            # for attendee in attendees:
+            #     client.line(attendee.position.x / divide, attendee.position.y / divide, coordinate.x / divide, coordinate.y / divide, client.DARK_RED)
             
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
@@ -183,7 +192,6 @@ def main(problem: dict):
             print(f'Musician {musician_id} - {coordinate.x} {coordinate.y} {coordinate.value}', file=sys.stderr)
             
             musicians[musician_id] = -1
-            instruments[i].coordinates = []
     
     print(f'Score - {score}', file=sys.stderr)
     client.end_frame()
@@ -193,17 +201,17 @@ def main(problem: dict):
 
 if __name__ == '__main__':
     api = API(API_TOKEN)
-    main({
-        "room_width": 2000.0,
-        "room_height": 5000.0,
-        "stage_width": 1000.0,
-        "stage_height": 200.0,
-        "stage_bottom_left": [500.0, 0.0],
-        "musicians": [0, 1, 0],
-        "attendees": [
-            {"x": 100.0, "y": 500.0, "tastes": [1000.0, -1000.0]},
-            {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
-            {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
-        ]
-    })
-    # print(json.dumps(main(api.get_problem(55))))
+    # main({
+    #     "room_width": 2000.0,
+    #     "room_height": 5000.0,
+    #     "stage_width": 1000.0,
+    #     "stage_height": 200.0,
+    #     "stage_bottom_left": [500.0, 0.0],
+    #     "musicians": [0, 1, 0],
+    #     "attendees": [
+    #         {"x": 100.0, "y": 500.0, "tastes": [1000.0, -1000.0]},
+    #         {"x": 200.0, "y": 1000.0, "tastes": [200.0, 200.0]},
+    #         {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
+    #     ]
+    # })
+    print(json.dumps(main(api.get_problem(10))))

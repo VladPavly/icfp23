@@ -105,6 +105,50 @@ class RewindClient():
         self._send({'type': 'end'})
 
 
+class FakeClient():
+    RED = 0xff0000
+    GREEN = 0x00ff00
+    BLUE = 0x0000ff
+    DARK_RED = 0x770000
+    DARK_GREEN = 0x007700
+    DARK_BLUE = 0x000077
+    TRANSPARENT = 0x7f000000
+    INVISIBLE = 0x01000000
+
+    def __init__(self, host=None, port=None):
+        pass
+
+    def line(self, x1, y1, x2, y2, color):
+        pass
+
+    def polyline(self, points, color):
+        pass
+
+    def circle(self, x, y, radius, color, fill=False):
+        pass
+
+    def rectangle(self, x1, y1, x2, y2, color, fill=False):
+        pass
+
+    def triangle(self, p1, p2, p3, color, fill=False):
+        pass
+
+    def circle_popup(self, x, y, radius, message):
+        pass
+
+    def rect_popup(self, tl, br, message):
+        pass
+
+    def message(self, msg):
+        pass
+
+    def set_options(self, layer=None, permanent=None):
+        pass
+
+    def end_frame(self):
+        pass
+
+
 if __name__ == '__main__':
     client = RewindClient()
     
