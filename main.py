@@ -4,6 +4,7 @@ import sys
 from visualisator import RewindClient, FakeClient
 import math
 import json
+import time
 
 
 class Coordinate():
@@ -12,9 +13,6 @@ class Coordinate():
         self.y = y
         self.value = value
         self.empty = True
-
-    def __repr__(self):
-        return f'Coordinate(x={self.x}, y={self.y}, value={self.value})'
     
     def distance(self, coordinate):
         distance = math.sqrt((self.x - coordinate.x) ** 2 + (self.y - coordinate.y) ** 2)
@@ -40,8 +38,11 @@ class Instrument():
         self.musicians = []
     
     def find_coordinates(self, instrument: int, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]) -> Coordinate:
+        # t = time.perf_counter()
         zero = 0
         best = Coordinate(0, 0)
+        
+        stage_plus = (stage[0] + 10, stage[1] + 10)
       
         while True:
             walls = [Coordinate(0, 0) for _ in range(4)]
@@ -60,53 +61,30 @@ class Instrument():
                     
             
             for i in range(zero, size_y):
-                x, y = zero + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(attendees, Coordinate(x, y), instrument)
+                y = i + stage_plus[1]
                 
-                if count >= walls[0].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    walls[0].value = count
-                    walls[0].x = x
-                    walls[0].y = y
-                    
-                debug(x, y) 
+                x = zero + stage_plus[0]
+                self.check(x, y, walls[0], instrument, attendees, stage_points)
                    
-                x, y = size_x + stage[0] + 10, i + stage[1] + 10
-                count = find_impact(attendees, Coordinate(x, y), instrument)
-                
-                if count >= walls[1].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    walls[1].value = count
-                    walls[1].x = x
-                    walls[1].y = y
-                    
-                debug(x, y) 
+                x = size_x + stage_plus[0]
+                self.check(x, y, walls[1], instrument, attendees, stage_points)
 
             for j in range(zero, size_x):
-                x, y = j + stage[0] + 10, zero + stage[1] + 10
-                count = find_impact(attendees, Coordinate(x, y), instrument)
+                x = j + stage_plus[0]
                 
-                if count >= walls[2].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    walls[2].value = count
-                    walls[2].x = x
-                    walls[2].y = y
-                    
-                debug(x, y)
+                y = zero + stage_plus[1]
+                self.check(x, y, walls[2], instrument, attendees, stage_points)
                 
-                x, y = j + stage[0] + 10, size_y + stage[1] + 10
-                count = find_impact(attendees, Coordinate(x, y), instrument)
-                
-                if count >= walls[3].value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
-                    walls[3].value = count
-                    walls[3].x = x
-                    walls[3].y = y
+                y = size_y + stage_plus[1]
+                self.check(x, y, walls[3], instrument, attendees, stage_points)
                     
                 debug(x, y)
             
             walls.sort(key = lambda coordinate: coordinate.value, reverse = True)
             
-            
-            if walls[0].value > best.value and (int(walls[0].x) not in stage_points or int(walls[0].y) not in stage_points[int(walls[0].x)] or stage_points[int(walls[0].x)][int(walls[0].y)].empty):
+            changed = walls[0].value > best.value
+            if changed:
                 best = walls[0]
-                changed = True
             
             if best.value == float('-inf') or changed:
                 zero += 10
@@ -115,7 +93,20 @@ class Instrument():
             else:
                 break
         
+        # print(f'Search: {time.perf_counter() - t}')
         return best
+    
+    def check(self, x: int, y: int, coordinate: Coordinate, instrument: int, attendees: list, stage_points: dict):
+        # t = time.perf_counter()
+        count = find_impact(attendees, Coordinate(x, y), instrument)
+                
+        if count >= coordinate.value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
+            coordinate.value = count
+            coordinate.x = x
+            coordinate.y = y
+            
+        debug(x, y)
+        # print(f'Check: {time.perf_counter() - t}')
 
 
 class Attendee():
@@ -127,15 +118,19 @@ class Attendee():
 def find_impact(attendees: list[Attendee], coordinate: Coordinate, instrument: int):
     count = 0
     
+    # t = time.perf_counter()
     for attendee in attendees:
         if not attendee.position.obstacle(coordinate):
             distance = attendee.position.distance(coordinate)
             count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
+    # print(f'Impact: {time.perf_counter() - t}')
     
     return count
 
 
 def circle_line_segment_intersection(circle_center, circle_radius, point_1, point_2):
+    # t = time.perf_counter()
+    
     (p1x, p1y), (p2x, p2y), (cx, cy) = point_1, point_2, circle_center
     (x1, y1), (x2, y2) = (p1x - cx, p1y - cy), (p2x - cx, p2y - cy)
     
@@ -145,6 +140,7 @@ def circle_line_segment_intersection(circle_center, circle_radius, point_1, poin
     discriminant = circle_radius ** 2 * dr ** 2 - big_d ** 2
 
     if discriminant < 0:
+        # print(f'Intersection: {time.perf_counter() - t}')
         return False
     else:
         intersections = [
@@ -155,10 +151,8 @@ def circle_line_segment_intersection(circle_center, circle_radius, point_1, poin
         fraction_along_segment = [(xi - p1x) / dx if abs(dx) > abs(dy) else (yi - p1y) / dy for xi, yi in intersections]
         intersections = [pt for pt, frac in zip(intersections, fraction_along_segment) if 0 <= frac <= 1]
         
-        if len(intersections) == 2 and abs(discriminant) <= 1e-9:
-            return False
-        else:
-            return True
+        # print(f'Intersection: {time.perf_counter() - t}')
+        return not (len(intersections) == 2 and abs(discriminant) <= 1e-9)
 
 
 def debug(x: int, y: int):
@@ -172,6 +166,7 @@ def main(problem: dict):
     if 'client' not in globals():
         client = FakeClient()
     
+    total_t = time.perf_counter()
     print('Preparing...', file=sys.stderr)
     
     stage_width: int = problem['stage_width']
@@ -190,7 +185,7 @@ def main(problem: dict):
         pillar_parser = lambda pillar: (tuple(pillar['center']), pillar['radius'])
         obstacles = list(map(pillar_parser, problem['pillars']))
     
-    print(f'Pillars - {len(obstacles)}')
+    print(f'Pillars: {len(obstacles)}', file=sys.stderr)
     
     for pillar in obstacles:
         client.circle(pillar[0][0] / divide, pillar[0][1] / divide, pillar[1] / divide, client.DARK_GREEN, True)
@@ -229,6 +224,7 @@ def main(problem: dict):
             
             client.circle(coordinate.x / divide, coordinate.y / divide, 5 / divide, client.RED, True)
             
+            # t = time.perf_counter()
             for ax in range(-10, 11):
                 for ay in range(-10, 11):
                     if (ax / 10) ** 2 + (ay / 10) ** 2 <= 1:
@@ -236,6 +232,7 @@ def main(problem: dict):
                             stage_points[int(coordinate.x + ax)] = {}
                         
                         stage_points[int(coordinate.x + ax)][int(coordinate.y + ay)] = coordinate
+            # print(f'Musician circle set: {time.perf_counter() - t}')
             
             musician_id = musicians.index(i)
             
@@ -244,11 +241,12 @@ def main(problem: dict):
             result['volumes'][musician_id] = volume
             
             musicians_parsed += 1
-            print(f'Musician {musicians_parsed}/{len(musicians)} ({musician_id}) - {coordinate.x} {coordinate.y} {coordinate.value * volume}', file=sys.stderr)
+            print(f'Musician {musicians_parsed}/{len(musicians)} ({musician_id}): {coordinate.x} {coordinate.y} {coordinate.value * volume}', file=sys.stderr)
             
             musicians[musician_id] = -1
     
-    print(f'Score - {score}', file=sys.stderr)
+    print(f'Score: {score}', file=sys.stderr)
+    print(f'Total: {time.perf_counter() - total_t}')
     client.end_frame()
     
     return result
