@@ -169,6 +169,9 @@ def debug(x: int, y: int):
 def main(problem: dict):
     global client, divide, obstacles
     
+    if 'client' not in globals():
+        client = FakeClient()
+    
     print('Preparing...', file=sys.stderr)
     
     stage_width: int = problem['stage_width']
@@ -256,8 +259,6 @@ if __name__ == '__main__':
     
     if input('Use visualisator (y/N): ').lower().startswith('y'):
         client = RewindClient()
-    else:
-        client = FakeClient()
     
     if input('Use sample (Y/n): ').lower().startswith('n'):
         result = main(api.get_problem(int(input('Problem number: '))))
