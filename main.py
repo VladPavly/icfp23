@@ -4,6 +4,8 @@ import sys
 from visualisator import RewindClient, FakeClient
 import math
 import json
+from shapely.geometry import LineString, Point, MultiPoint
+from shapely.geometry import Point
 
 
 class Coordinate():
@@ -16,24 +18,28 @@ class Coordinate():
     def __repr__(self):
         return f'Coordinate(x={self.x}, y={self.y}, value={self.value})'
     
-    def to_vector(self, coordinate):
-        initial = (self.x - coordinate.x, self.y - coordinate.y)
-        
-        mx = max(abs(initial[0]), abs(initial[1]))
-        
-        converted = (initial[0] / mx, initial[1] / mx)
-        
-        return converted
-    
     def distance(self, coordinate):
         distance = math.sqrt((self.x - coordinate.x) ** 2 + (self.y - coordinate.y) ** 2)
         
         return distance
+    
+    def to_vector(self):
+        return (self.x, self.y)
+    
+    def obstacle(self, coordinate):
+        line_string = LineString([self.to_vector(), coordinate.to_vector()])
+        
+        for obstacle in obstacles:
+            if line_string.intersects(obstacle):
+                return True
+        
+        return False
 
 
-class Instruments():
+class Instrument():
     def __init__(self):
         self.empty = True
+        self.musicians = []
     
     def find_coordinates(self, instrument: int, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]) -> Coordinate:
         zero = 0
@@ -124,18 +130,20 @@ def find_impact(attendees: list[Attendee], coordinate: Coordinate, instrument: i
     count = 0
     
     for attendee in attendees:
-        distance = attendee.position.distance(coordinate)
-        count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
+        if not attendee.position.obstacle(coordinate):
+            distance = attendee.position.distance(coordinate)
+            count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
     
     return count
 
 
 def debug(x: int, y: int):
-    client.circle(x / divide, y / divide, 1, client.GREEN, True)  
+    # client.circle(x / divide, y / divide, 1, client.GREEN, True)  
+    pass
 
 
 def main(problem: dict):
-    global client, divide
+    global client, divide, obstacles
     
     print('Preparing...', file=sys.stderr)
     
@@ -150,10 +158,12 @@ def main(problem: dict):
     client = RewindClient()
     divide = 1
     
+    obstacles = []
+    
     for attendee in attendees:
         client.circle(attendee.position.x / divide, attendee.position.y / divide, 5, client.BLUE, True)
 
-    instruments = [Instruments() for _ in range(max(musicians) + 1)]
+    instruments = [Instrument() for _ in range(max(musicians) + 1)]
     
     print('Starting script...', file=sys.stderr)
     
@@ -169,6 +179,7 @@ def main(problem: dict):
     for i in range(len(instruments)):
         for _ in range(musicians.count(i)):
             coordinate = instruments[i].find_coordinates(i, attendees, int(stage_height - 20), int(stage_width - 20), stage_bottom_left, stage_points)
+            obstacles.append(Point(*coordinate.to_vector()).buffer(5).boundary)
 
             coordinate.empty = False
             score += coordinate.value
@@ -214,4 +225,4 @@ if __name__ == '__main__':
     #         {"x": 1100.0, "y": 800.0, "tastes": [800.0, 1500.0]}
     #     ]
     # })
-    print(json.dumps(main(api.get_problem(10))))
+    print(json.dumps(main(api.get_problem(50))))
