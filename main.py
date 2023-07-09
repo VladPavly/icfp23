@@ -130,7 +130,7 @@ def find_impact(attendees: list[Attendee], coordinate: Coordinate, instrument: i
     for attendee in attendees:
         if not attendee.position.obstacle(coordinate):
             distance = attendee.position.distance(coordinate)
-            count += max(math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0, 0)
+            count += math.ceil(1_000_000 * attendee.tastes[instrument] / (distance ** 2)) if distance != 0 else 0
     
     return count
 
