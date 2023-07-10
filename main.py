@@ -33,11 +33,12 @@ class Coordinate():
 
 
 class Instrument():
-    def __init__(self):
+    def __init__(self, instrument: int):
         self.empty = True
         self.musicians = []
+        self.instrument = instrument
     
-    def find_coordinates(self, instrument: int, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]) -> Coordinate:
+    def find_coordinates(self, attendees: list, size_y: int, size_x: int, stage: list[float], stage_points: dict[int, dict[int, Coordinate]]) -> Coordinate:
         # t = time.perf_counter()
         zero = 0
         best = Coordinate(0, 0)
@@ -60,23 +61,23 @@ class Instrument():
             #             walls[idx].y = y
                     
             
-            for i in range(zero, size_y):
+            for i in range(zero, size_y, 10):
                 y = i + stage_plus[1]
                 
                 x = zero + stage_plus[0]
-                self.check(x, y, walls[0], instrument, attendees, stage_points)
+                self.check(x, y, walls[0], attendees, stage_points)
                    
                 x = size_x + stage_plus[0]
-                self.check(x, y, walls[1], instrument, attendees, stage_points)
+                self.check(x, y, walls[1], attendees, stage_points)
 
-            for j in range(zero, size_x):
+            for j in range(zero, size_x, 10):
                 x = j + stage_plus[0]
                 
                 y = zero + stage_plus[1]
-                self.check(x, y, walls[2], instrument, attendees, stage_points)
+                self.check(x, y, walls[2], attendees, stage_points)
                 
                 y = size_y + stage_plus[1]
-                self.check(x, y, walls[3], instrument, attendees, stage_points)
+                self.check(x, y, walls[3], attendees, stage_points)
                     
                 debug(x, y)
             
@@ -96,9 +97,9 @@ class Instrument():
         # print(f'Search: {time.perf_counter() - t}')
         return best
     
-    def check(self, x: int, y: int, coordinate: Coordinate, instrument: int, attendees: list, stage_points: dict):
+    def check(self, x: int, y: int, coordinate: Coordinate, attendees: list, stage_points: dict):
         # t = time.perf_counter()
-        count = find_impact(attendees, Coordinate(x, y), instrument)
+        count = find_impact(attendees, Coordinate(x, y), self.instrument)
                 
         if count >= coordinate.value and (int(x) not in stage_points or int(y) not in stage_points[int(x)] or stage_points[int(x)][int(y)].empty):
             coordinate.value = count
